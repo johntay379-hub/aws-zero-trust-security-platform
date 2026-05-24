@@ -1,0 +1,11 @@
+variable "project"              { type = string }
+variable "vpc_id"               { type = string }
+variable "public_subnet_ids"    { type = list(string) }
+variable "target_group_arn"     { type = string }
+variable "iam_instance_profile" { type = string }
+variable "instance_type"        { type = string }
+variable "min_size"             { type = number }
+variable "max_size"             { type = number }
+variable "desired_capacity"     { type = number }
+variable "region"               { type = string }
+variable "ec2_sg_id"            { type = string }

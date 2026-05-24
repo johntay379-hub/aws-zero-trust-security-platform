@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zero Trust Security Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #030712;
+      --surface: #0d1321;
+      --surface2: #111827;
+      --border: rgba(99,179,255,0.08);
+      --border2: rgba(99,179,255,0.2);
+      --blue: #3b82f6;
+      --teal: #14b8a6;
+      --green: #22c55e;
+      --purple: #a855f7;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #475569;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 60px 24px; }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 72px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 100px;
+      padding: 6px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    h1 .gradient {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      font-size: 1.1rem;
+      color: var(--text2);
+      max-width: 560px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    .meta-item span { color: var(--text2); }
+
+    /* ── Stats ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 56px;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 16px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .stat:hover { border-color: var(--border2); }
+
+    .stat-num {
+      font-size: 2.2rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: linear-gradient(135deg, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label { font-size: 11px; color: var(--text3); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ── Section title ── */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Services ── */
+    .services {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 56px;
+    }
+
+    .service {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      gap: 16px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .service::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent, #3b82f6), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .service:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .service:hover::after { opacity: 1; }
+
+    .service-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .service-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .service-desc { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 12px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: rgba(34,197,94,0.08);
+      color: #86efac;
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+
+    /* color accents */
+    .a-blue   { --accent: #3b82f6; background: rgba(59,130,246,0.08); }
+    .a-teal   { --accent: #14b8a6; background: rgba(20,184,166,0.08); }
+    .a-green  { --accent: #22c55e; background: rgba(34,197,94,0.08); }
+    .a-purple { --accent: #a855f7; background: rgba(168,85,247,0.08); }
+    .a-amber  { --accent: #f59e0b; background: rgba(245,158,11,0.08); }
+    .a-pink   { --accent: #ec4899; background: rgba(236,72,153,0.08); }
+    .a-red    { --accent: #ef4444; background: rgba(239,68,68,0.08); }
+    .a-indigo { --accent: #6366f1; background: rgba(99,102,241,0.08); }
+    .a-cyan   { --accent: #06b6d4; background: rgba(6,182,212,0.08); }
+
+    /* ── Architecture ── */
+    .arch {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 56px;
+    }
+
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0;
+      margin-top: 28px;
+    }
+
+    .arch-node {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 110px;
+      margin: 6px 0;
+    }
+
+    .arch-node-icon { font-size: 24px; margin-bottom: 4px; }
+    .arch-node-label { font-size: 10px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+    .arch-arrow { color: var(--text3); font-size: 20px; padding: 0 6px; }
+
+    /* ── Instance info ── */
+    .instance-info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 56px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .instance-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green);
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+
+    .instance-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    .instance-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--blue);
+      margin-left: auto;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding-top: 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text3);
+      margin-bottom: 16px;
+    }
+
+    .footer-name strong { color: var(--blue); }
+
+    .tags {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text3);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px 12px;
+    }
+
+    .fade { opacity: 0; transform: translateY(16px); animation: fadeIn 0.5s forwards; }
+    @keyframes fadeIn { to { opacity:1; transform:none; } }
+    .d1{animation-delay:0.1s} .d2{animation-delay:0.2s} .d3{animation-delay:0.3s}
+    .d4{animation-delay:0.4s} .d5{animation-delay:0.5s} .d6{animation-delay:0.6s}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header fade d1">
+    <div class="badge"><div class="badge-dot"></div>All Systems Operational</div>
+    <h1>⚔️ <span class="gradient">Zero Trust<br>Security Platform</span></h1>
+    <p class="tagline">A production-grade AWS security infrastructure — auto-scaled, load balanced, and compliance ready. Built entirely with Terraform.</p>
+    <div class="meta">
+      <div class="meta-item">Region: <span>us-east-1</span></div>
+      <div class="meta-item">IaC: <span>Terraform</span></div>
+      <div class="meta-item">OS: <span>Ubuntu Linux</span></div>
+      <div class="meta-item">Author: <span>John</span></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats fade d2">
+    <div class="stat"><div class="stat-num">9</div><div class="stat-label">AWS Services</div></div>
+    <div class="stat"><div class="stat-num">43</div><div class="stat-label">Resources</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-label">Command Deploy</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Public Exposures</div></div>
+    <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Auto Scaling</div></div>
+  </div>
+
+  <!-- Instance Info -->
+  <div class="instance-info fade d2">
+    <div class="instance-dot"></div>
+    <div class="instance-label">Serving request from instance:</div>
+    <div class="instance-id" id="hostname">Loading...</div>
+  </div>
+
+  <!-- Services -->
+  <div class="section-label fade d3">Deployed Services</div>
+  <div class="services fade d3">
+
+    <div class="service">
+      <div class="service-icon a-blue">🔐</div>
+      <div>
+        <div class="service-name">IAM</div>
+        <div class="service-desc">Least privilege roles, strong password policy, EC2 instance profiles — zero hardcoded credentials.</div>
+        <div class="pill"><div class="pill-dot"></div>Active</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-amber">🪣</div>
+      <div>
+        <div class="service-name">S3 Audit Vault</div>
+        <div class="service-desc">AES-256 encrypted, versioned, fully private. Receives logs from CloudTrail and AWS Config.</div>
+        <div class="pill"><div class="pill-dot"></div>Active</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-purple">🔍</div>
+      <div>
+        <div class="service-name">CloudTrail</div>
+        <div class="service-desc">Multi-region trail capturing every API call with log file validation for tamper-proof forensics.</div>
+        <div class="pill"><div class="pill-dot"></div>Logging</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-teal">🌐</div>
+      <div>
+        <div class="service-name">VPC</div>
+        <div class="service-desc">Isolated network with public and private subnets, internet gateway, and layered security groups.</div>
+        <div class="pill"><div class="pill-dot"></div>Active</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-cyan">⚖️</div>
+      <div>
+        <div class="service-name">Application Load Balancer</div>
+        <div class="service-desc">Distributes traffic across all healthy instances. Health checks every 30 seconds.</div>
+        <div class="pill"><div class="pill-dot"></div>Routing</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-green">📈</div>
+      <div>
+        <div class="service-name">Auto Scaling Group</div>
+        <div class="service-desc">Scales from 1 to 4 instances based on CPU load. Scale up at 70%, scale down at 30%.</div>
+        <div class="pill"><div class="pill-dot"></div>Scaling</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-pink">📊</div>
+      <div>
+        <div class="service-name">CloudWatch + SNS</div>
+        <div class="service-desc">CPU, status, and ALB 5XX alarms with real-time email alerts via SNS.</div>
+        <div class="pill"><div class="pill-dot"></div>Monitoring</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-indigo">🛡️</div>
+      <div>
+        <div class="service-name">AWS Config</div>
+        <div class="service-desc">Compliance rules checking S3 public access, EC2 IMDSv2, CloudTrail, and root MFA.</div>
+        <div class="pill"><div class="pill-dot"></div>Compliant</div>
+      </div>
+    </div>
+
+    <div class="service">
+      <div class="service-icon a-red">🖥️</div>
+      <div>
+        <div class="service-name">EC2 Web Servers</div>
+        <div class="service-desc">Hardened instances with IMDSv2 enforced, Apache auto-installed via Launch Template user data.</div>
+        <div class="pill"><div class="pill-dot"></div>Running</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Architecture -->
+  <div class="section-label fade d4">Architecture Flow</div>
+  <div class="arch fade d4">
+    <div class="arch-flow">
+      <div class="arch-node"><div class="arch-node-icon">🌍</div><div class="arch-node-label">Internet</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">⚖️</div><div class="arch-node-label">ALB</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">📈</div><div class="arch-node-label">ASG</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">🖥️</div><div class="arch-node-label">EC2 × 2</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">🔍</div><div class="arch-node-label">CloudTrail</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">🪣</div><div class="arch-node-label">S3 Vault</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">📊</div><div class="arch-node-label">CloudWatch</div></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><div class="arch-node-icon">📧</div><div class="arch-node-label">SNS Alert</div></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer fade d5">
+    <div class="footer-name">Built by <strong>John</strong> · AWS Cloud Security Engineer · May 2026</div>
+    <div class="tags">
+      <div class="tag">terraform</div>
+      <div class="tag">zero-trust</div>
+      <div class="tag">auto-scaling</div>
+      <div class="tag">load-balancer</div>
+      <div class="tag">aws-config</div>
+      <div class="tag">security-first</div>
+      <div class="tag">infrastructure-as-code</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Show hostname dynamically
+  fetch('/index.html')
+    .then(() => {
+      const hostname = window.location.hostname;
+      document.getElementById('hostname').textContent = hostname || 'zero-trust-instance';
+    })
+    .catch(() => {
+      document.getElementById('hostname').textContent = 'zero-trust-instance';
+    });
+</script>
+</body>
+</html>
