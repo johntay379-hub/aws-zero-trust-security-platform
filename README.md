@@ -1,209 +1,167 @@
-# 🔒 Terraform AWS Security Framework
+# ⚔️ AWS Zero Trust Security Platform
+### Auto-Scaled · Load Balanced · Compliance Ready · Built with Terraform
 
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?style=for-the-badge&logo=terraform)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange?style=for-the-badge&logo=amazon-aws)
-![Ubuntu](https://img.shields.io/badge/OS-Ubuntu%20Linux-E95420?style=for-the-badge&logo=ubuntu)
-![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge)
-![Region](https://img.shields.io/badge/Region-us--east--1-yellow?style=for-the-badge&logo=amazon-aws)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen?style=for-the-badge)
+![Resources](https://img.shields.io/badge/Resources-43-blue?style=for-the-badge)
 
 ---
 
-## What is this?
+## What makes this different?
 
-This project provisions a complete, security-hardened AWS environment using Terraform. Every resource — from IAM roles to CloudWatch alarms — is defined as code, versioned, and deployable with a single command.
+This is not just another AWS deployment. This is a full enterprise-grade security platform combining high availability, auto scaling, load balancing, and continuous compliance under one Terraform-automated infrastructure.
 
-It covers six layers of cloud security: identity, storage, logging, networking, compute, and monitoring. No clicking around the console. No forgetting a step. Just `terraform apply` and everything is built exactly the same way, every time.
+Three things set this project apart:
+
+**1. Application Load Balancer** — traffic never hits a server directly. Every request goes through the ALB, which health-checks instances every 30 seconds and only routes to healthy ones. One instance dies, the ALB routes around it. The user never notices.
+
+**2. Auto Scaling Group** — the platform watches its own CPU. When load increases, it adds servers automatically. When load drops, it removes them. No human intervention, no over-provisioning, no downtime.
+
+**3. AWS Config** — most people build secure infrastructure and hope it stays that way. This platform continuously evaluates every resource against compliance rules. The moment something drifts — Config catches it and flags it.
+
+Everything deploys with terraform apply. One command. 43 resources. Done.
 
 ---
 
 ## 🌐 Live Demo
 
-**👉 http://52.72.133.29**
+**👉 http://zero-trust-alb-1441037960.us-east-1.elb.amazonaws.com**
+
+Refresh the page multiple times. You will hit different EC2 instances — that is the ALB distributing traffic across the Auto Scaling Group in real time.
 
 ---
 
-## 📌 What was built
+## 📌 Platform Overview
 
 | Layer | Service | What it does |
 |---|---|---|
-| 🔐 Identity | IAM | Locks down who can do what — least privilege everywhere |
-| 🪣 Storage | S3 | Private, encrypted vault that stores every audit log |
-| 🔍 Logging | CloudTrail | Records every single API call made in the account |
-| 🌐 Networking | VPC | Custom isolated network — nothing gets in without permission |
-| 🖥️ Compute | EC2 | Hardened web server running Apache with a static IP |
-| 📊 Monitoring | CloudWatch + SNS | Watches for threats and sends email alerts in real time |
+| 🔐 Identity | IAM | Least privilege roles, strong password policy, zero hardcoded credentials |
+| 🪣 Audit Storage | S3 | AES-256 encrypted, versioned vault — receives logs from CloudTrail and Config |
+| 🔍 Logging | CloudTrail | Multi-region trail capturing every API call with tamper-proof validation |
+| 🌐 Networking | VPC | 4-subnet isolated network across 2 availability zones |
+| ⚖️ Load Balancing | Application Load Balancer | Distributes traffic, health-checks every instance, removes unhealthy ones |
+| 📈 Auto Scaling | Auto Scaling Group | Scales 1 to 4 instances based on CPU — fully automatic |
+| 📊 Monitoring | CloudWatch + SNS | CPU, scaling, and ALB alarms with real-time email alerts |
+| 🛡️ Compliance | AWS Config | 4 continuous compliance rules — evaluated automatically |
+| 🖥️ Compute | EC2 | Hardened instances, IMDSv2 enforced, Apache via Launch Template |
 
 ---
 
-## 🏗️ Architecture
-
-```mermaid
-flowchart TD
-    Internet(["🌐 Internet\nHTTP · HTTPS"]) -->|port 80 / 443| IGW
-
-    IGW["🚪 Internet Gateway\nVPC entry point"] --> RT
-    RT["📋 Route Table\n0.0.0.0/0 → IGW"] --> PUB
-
-    subgraph VPC["🏗️ VPC — 10.0.0.0/16"]
-        subgraph PUB["📡 Public Subnet — 10.0.1.0/24"]
-            EC2["🖥️ EC2 Web Server\nt2.micro · Apache\nElastic IP · IMDSv2"]
-            SG["🛡️ Security Group\n80 · 443 · 22"]
-            EC2 --- SG
-        end
-        subgraph PRI["🔒 Private Subnet — 10.0.2.0/24"]
-            DB["🗄️ Future DB Layer\nNo public access"]
-        end
-    end
-
-    IAM["🔐 IAM\nLeast Privilege\nInstance Profile\nPassword Policy"] -.->|role assigned| EC2
-
-    EC2 -->|API events| CT
-    CT["🔍 CloudTrail\nMulti-Region\nLog Validation\nTamper-Proof"] -->|log delivery| S3
-    S3["🪣 S3 Audit Vault\nAES-256 Encrypted\nVersioned · Private"]
-
-    EC2 -->|metrics| CW
-    CW["📊 CloudWatch\nCPU · Status\nIAM Change Alarms"] -->|triggers| SNS
-    SNS["📧 SNS\nReal-Time\nEmail Alerts"]
-
-    TF["⚙️ Terraform\nInfrastructure as Code\nSingle Command Deploy"] -.->|provisions| VPC
-    TF -.->|provisions| IAM
-    TF -.->|provisions| S3
-    TF -.->|provisions| CT
-    TF -.->|provisions| CW
-
-    style Internet fill:#0d1a30,stroke:#4a9eff,color:#93c5fd
-    style IGW fill:#0a2020,stroke:#00d4aa,color:#5eead4
-    style RT fill:#0a2020,stroke:#00d4aa,color:#5eead4
-    style VPC fill:#0e1520,stroke:#1e3a5f,color:#7a9bbf
-    style PUB fill:#0a2020,stroke:#00d4aa,color:#5eead4
-    style PRI fill:#110d1f,stroke:#7c3aed,color:#a78bfa
-    style EC2 fill:#0a1f0f,stroke:#00e676,color:#86efac
-    style SG fill:#0d1520,stroke:#374151,color:#6b7280
-    style DB fill:#0d1520,stroke:#374151,color:#4b5563
-    style IAM fill:#0d1a30,stroke:#3b82f6,color:#93c5fd
-    style CT fill:#1a1200,stroke:#f59e0b,color:#fcd34d
-    style S3 fill:#1a1200,stroke:#f59e0b,color:#fcd34d
-    style CW fill:#1a0e08,stroke:#ef4444,color:#fca5a5
-    style SNS fill:#1a0810,stroke:#ec4899,color:#f9a8d4
-    style TF fill:#1a0a2e,stroke:#7B42BC,color:#c4b5fd
-```
-
----
-
-## ⚙️ Why Terraform?
-
-I originally built this same framework manually using the AWS CLI. It worked, but it took hundreds of commands, was easy to get wrong, and hard to rebuild from scratch.
-
-Terraform solves all of that. You describe the infrastructure you want, and it figures out how to build it. If something goes wrong, you fix the code and reapply. When you're done, one command tears everything down cleanly.
-
-| AWS CLI Version | Terraform Version |
-|---|---|
-| 100+ manual commands | `terraform apply` |
-| Easy to make mistakes | Same result every time |
-| Hard to share or reproduce | Clone and deploy anywhere |
-| No record of what exists | State file tracks everything |
-| Manual teardown | `terraform destroy` |
-
----
-
-## 🚀 How it was built — Phase by Phase
+## 🚀 Deployment — Phase by Phase
 
 ### Phase 1 — IAM
-**Module:** `modules/iam/`
+**Module:** modules/iam/
 
-The first thing I built was identity — before any server, any network, anything. This is intentional. In cloud environments, IAM is your first and most important line of defense.
+Identity is the foundation. Before any server, any network, anything — the account-wide access controls were locked down first.
 
-What was configured:
-- A strong account-wide password policy (14+ characters, symbols, expiry every 90 days)
-- An EC2 instance role with only the permissions it actually needs — CloudWatch and SSM
-- No admin users, no wildcard permissions, no shared credentials
-
-The reason IAM comes first is simple: if your identity layer is weak, nothing else you build matters.
+- 14-character minimum password, symbols, numbers, upper and lowercase required
+- 90-day expiration, last 5 passwords blocked from reuse
+- Dedicated EC2 instance role — CloudWatch and SSM access only
+- No wildcard permissions, no admin policies, no credentials stored on instances
 
 ---
 
 ### Phase 2 — S3 Audit Vault
-**Module:** `modules/s3/`
+**Module:** modules/s3/
 
-Before any logging can happen, there needs to be a safe place to store the logs. I built a dedicated S3 bucket with three non-negotiables: encryption, versioning, and zero public access.
+A single encrypted bucket serves as the central destination for all audit and compliance data — CloudTrail logs and AWS Config records both land here.
 
-What was configured:
-- AES-256 encryption at rest — logs cannot be read even if someone gets bucket access
-- Versioning enabled — even if someone deletes a log, the previous version is preserved
-- Public access fully blocked at bucket level
-- A resource-based policy that allows only the CloudTrail service to write — nothing else
-
-The goal was simple: make it physically difficult to tamper with audit evidence.
+- AES-256 encryption at rest
+- Versioning enabled — logs are preserved even if deletion is attempted
+- Public access blocked at every level
+- Bucket policy allows only CloudTrail and AWS Config to write
 
 ---
 
 ### Phase 3 — CloudTrail
-**Module:** `modules/cloudtrail/`
+**Module:** modules/cloudtrail/
 
-With the vault ready, I turned on logging. CloudTrail captures every API call made in the AWS account — whether it comes from the console, the CLI, or an attacker.
+Every API call in the account is recorded — from the console, the CLI, the SDK, or an attacker. All of it, across all regions.
 
-What was configured:
-- Multi-region trail — covers all AWS regions, not just the one being used
-- Global service events enabled — captures IAM and STS activity which are account-wide
-- Log file validation — every log file gets a hash that proves it hasn't been modified
-
-The multi-region part is often overlooked. Attackers know that most people only monitor their primary region. A multi-region trail removes that blind spot.
+- Multi-region trail — no blind spots in unused regions
+- Global service events — IAM and STS activity captured
+- Log file validation — cryptographic proof logs have not been tampered with
 
 ---
 
 ### Phase 4 — VPC
-**Module:** `modules/vpc/`
+**Module:** modules/vpc/
 
-I built the network from scratch — no default VPC, no pre-existing resources. Everything was intentional.
+The network is built across two availability zones. Four subnets — two public for the web tier, two private reserved for a future database layer.
 
-What was configured:
-- A VPC with CIDR `10.0.0.0/16` — 65,536 private IP addresses
-- A public subnet for the web server — internet-facing, controlled by security groups
-- A private subnet reserved for a future database layer — completely isolated from the internet
-- An internet gateway and route table directing only necessary traffic
-- Two security groups — one for the web server (ports 80, 443, 22), one for a bastion host (port 22 only)
-
-The private subnet exists even though nothing lives there yet. This is intentional — building with future expansion in mind means you're not scrambling to restructure the network later.
+- ALB security group: accepts 80 and 443 from the internet
+- EC2 security group: accepts traffic only from the ALB security group
+- Instances are not directly reachable from the internet at all
 
 ---
 
-### Phase 5 — EC2 Web Server
-**Module:** `modules/ec2/`
+### Phase 5 — Application Load Balancer ⭐
+**Module:** modules/alb/
 
-The web server was the most hardening-intensive piece. A publicly accessible server is the highest-risk component in this architecture.
+This is what separates a basic deployment from a production-grade one. The ALB is the front door to the entire platform.
 
-What was configured:
-- Amazon Linux 2023 on a t2.micro (free tier eligible)
-- Apache installed automatically via a User Data script on first boot — no manual SSH required
-- An Elastic IP for a consistent public address that survives instance restarts
-- The IAM instance profile attached — the server can talk to CloudWatch and SSM without a single hardcoded credential
-- IMDSv2 enforced — this blocks a class of attacks called SSRF, where a compromised application tries to read AWS credentials from the metadata endpoint
+Every incoming request hits the ALB first. The ALB checks which instances are healthy, then forwards the request to one of them. Health checks run every 30 seconds. If an instance fails three consecutive checks it is silently removed from rotation. The user never sees an error.
 
-**Live:** http://52.72.133.29
+The ALB spans both availability zones. If an entire AZ goes down, traffic automatically shifts to instances in the other zone. That is what high availability actually looks like.
 
 ---
 
-### Phase 6 — CloudWatch + SNS
-**Module:** `modules/cloudwatch/`
+### Phase 6 — Auto Scaling Group ⭐
+**Module:** modules/asg/
 
-The final layer is visibility. It is not enough to build secure infrastructure — you need to know immediately when something goes wrong.
+The Auto Scaling Group manages the fleet of EC2 instances and adjusts size based on actual demand. Every instance is launched from a Launch Template — a versioned, immutable blueprint defining the AMI, instance type, IAM role, security group, IMDSv2 enforcement, and user data script. Every instance is identical. No configuration drift, no manual setup.
 
-What was configured:
-- A CPU alarm that fires if the instance stays above 80% for 10 minutes — this catches crypto miners and DDoS attacks
-- A status check alarm that fires if the instance fails its health check — catches hardware failures and crashes
-- An IAM policy change alarm that fires the moment any permission is modified — this is the most important one, because privilege escalation is how most attacks escalate
-- All alarms connected to an SNS topic that sends an email instantly
+Scaling policies:
+- CPU above 70% for 5 minutes — add one instance
+- CPU below 30% for 10 minutes — remove one instance
+- Minimum 1 instance always running
+- Maximum 4 instances as the cost ceiling
+
+IMDSv2 is enforced on every instance. This blocks Server Side Request Forgery attacks where a compromised application reads AWS credentials from the metadata endpoint. With IMDSv2 that attack returns a 401.
+
+---
+
+### Phase 7 — CloudWatch + SNS
+**Module:** modules/cloudwatch/
+
+Three alarms run continuously:
+
+- CPU High — exceeds 70% for 5 minutes — triggers scale-up AND sends email alert
+- CPU Low — below 30% for 10 minutes — triggers scale-down to save cost
+- ALB 5XX — more than 10 server errors in 5 minutes — catches app failures before outages
+
+---
+
+### Phase 8 — AWS Config ⭐
+**Module:** modules/config/
+
+AWS Config is the compliance layer that most cloud deployments skip. This platform does not skip it.
+
+Config continuously evaluates every resource against four rules — not on a schedule, continuously. Every time a resource is created or modified, Config re-evaluates it.
+
+**Rule 1 — S3 bucket public access prohibited**
+Any S3 bucket allowing public read access is flagged immediately.
+
+**Rule 2 — EC2 IMDSv2 check**
+Every EC2 instance must enforce IMDSv2. Any instance running IMDSv1 is flagged — including ones launched outside Terraform.
+
+**Rule 3 — CloudTrail enabled**
+Verifies a multi-region trail is active. If logging is ever disabled — by accident or an attacker — Config raises the flag.
+
+**Rule 4 — Root account MFA enabled**
+The root account without MFA is one of the highest-risk configurations in AWS. This rule ensures it is always flagged.
+
+Every evaluation result is recorded to the S3 audit vault — a full compliance history available at any time.
 
 ---
 
 ## 🛡️ Security Simulation
 
-After building, I tested. Three real-world attack scenarios were run against this deployment to verify that every control actually works:
-
 | Scenario | Result | Caught By |
 |---|---|---|
 | Unauthorized API Access | Blocked + Alerted | IAM · CloudTrail · CloudWatch · SNS |
-| SSH Brute Force | Blocked | Key Pair Auth · Security Group |
+| SSH Brute Force | Blocked | Key Pair Auth · EC2 Security Group |
 | Log Tampering | Blocked + Preserved | S3 Policy · Versioning · CloudTrail |
 
 📄 [Read the full Security Simulation Report](SECURITY_SIMULATION.md)
@@ -212,102 +170,65 @@ After building, I tested. Three real-world attack scenarios were run against thi
 
 ## 🔐 Key Security Decisions
 
-These are the decisions that matter — and why they were made:
+**IMDSv2 on every instance** — enforced at the Launch Template level. Every instance in the ASG inherits it. No way to launch without it.
 
-**IAM before everything else** — Identity is the perimeter in cloud. If IAM is weak, a compromised account can undo every other control.
+**EC2 only reachable via ALB** — EC2 security group allows inbound only from the ALB security group. Direct access is impossible.
 
-**Multi-region CloudTrail** — Attackers commonly spin up resources in regions that aren't being monitored. A multi-region trail closes that gap.
+**Multi-AZ deployment** — ALB and ASG span two AZs. A single AZ failure does not take down the platform.
 
-**Log file validation** — This creates a cryptographic hash for every log file. If a log is modified after delivery, the hash won't match and you'll know.
+**Config over manual audits** — manual audits happen once. AWS Config evaluates continuously. Drift is caught in minutes, not months.
 
-**IMDSv2 enforcement** — The instance metadata service is a common target for SSRF attacks. IMDSv2 requires a session token, which blocks unauthenticated requests entirely.
+**Versioned Launch Template** — every configuration change creates a new version. Rollbacks are instant.
 
-**S3 versioning** — Even with the strictest bucket policy, an attacker who somehow gets write access cannot permanently destroy logs. Versioning preserves every previous version.
-
-**Terraform modules** — Each service is its own module. This makes the code reusable, easier to audit, and easier to update without breaking everything else.
+**S3 as the single audit destination** — CloudTrail and Config both write to the same encrypted vault. One place to look, one place to protect.
 
 ---
 
 ## 💰 Cost Breakdown
 
-This entire deployment runs for almost nothing:
-
 | Service | Monthly Cost |
 |---|---|
-| EC2 t2.micro | $0.00 (free tier) |
-| S3 Audit Vault | ~$0.02 |
-| CloudTrail | $0.00 (first trail is free) |
-| Elastic IP | $0.00 (attached to a running instance) |
-| CloudWatch | $0.00 (3 alarms, 10 are free) |
-| SNS | $0.00 (under 1,000 emails per month) |
-| VPC / IGW / Subnets | $0.00 (always free) |
-| **Total** | **~$0.02/month** |
+| EC2 t2.micro x 2 | /usr/bin/bash.00 (free tier) |
+| Application Load Balancer | ~6.00 |
+| S3 Audit Vault | ~/usr/bin/bash.02 |
+| CloudTrail | /usr/bin/bash.00 (first trail free) |
+| CloudWatch | /usr/bin/bash.00 (free tier) |
+| SNS | /usr/bin/bash.00 (under 1,000 emails) |
+| AWS Config | ~/usr/bin/bash.003 per rule evaluation |
+| VPC / IGW / Subnets | /usr/bin/bash.00 (always free) |
+| **Total** | **~6/month** |
+
+To run at zero cost during development, set ASG desired capacity to 0. The ALB is the only billable component at rest.
 
 ---
 
 ## 🛠️ Deploy it yourself
 
-```bash
-# Clone the repository
-git clone https://github.com/johntay379-hub/terraform-aws-security-framework.git
-cd terraform-aws-security-framework
 
-# Generate an SSH key pair for EC2 access
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/john-security-key -N ""
 
-# Set up your AWS credentials
-aws configure
-
-# Download the AWS provider plugin
-terraform init
-
-# See exactly what Terraform will create before touching anything
-terraform plan
-
-# Build everything
-terraform apply
-
-# When you are done, clean up with one command
-terraform destroy
-```
-
-You will need Terraform 1.0 or higher, the AWS CLI configured, and an IAM user with sufficient permissions.
+Prerequisites: Terraform >= 1.0 · AWS CLI · IAM user with permissions · Ubuntu Linux
 
 ---
 
 ## 📁 Project Structure
 
-```
-terraform-aws-security-framework/
-├── main.tf                   # Connects all modules together
-├── variables.tf              # All configurable values in one place
-├── outputs.tf                # What gets printed after deployment
-├── providers.tf              # AWS provider and version config
-├── .gitignore                # Keeps secrets and large files out of git
-├── modules/
-│   ├── iam/                  # Phase 1 — Identity & access
-│   ├── s3/                   # Phase 2 — Audit log storage
-│   ├── cloudtrail/           # Phase 3 — API activity logging
-│   ├── vpc/                  # Phase 4 — Network isolation
-│   ├── ec2/                  # Phase 5 — Hardened web server
-│   └── cloudwatch/           # Phase 6 — Monitoring and alerting
-├── SECURITY_SIMULATION.md    # Attack scenarios and outcomes
-├── README.md                 # You are here
-└── screenshots/              # Console and CLI proof of deployment
-```
+
 
 ---
 
-## 📸 Screenshots
+## 🔗 Related Projects
 
-All screenshots are in the `/screenshots` folder — AWS console views and Terraform terminal output showing every service deployed and verified.
+| Project | What it covers |
+|---|---|
+| [AWS CLI Security Framework](https://github.com/johntay379-hub/aws-end-to-end-security-framework) | Security fundamentals deployed manually via CLI |
+| [Terraform Security Framework](https://github.com/johntay379-hub/terraform-aws-security-framework) | Same security model rebuilt as Infrastructure as Code |
+| **Zero Trust Security Platform** | **Full enterprise architecture — ALB, ASG, AWS Config added** |
 
 ---
 
 ## 👨‍💻 Author
 
 **John** — AWS Cloud Security Engineer
+Built and deployed May 2026 · Region: us-east-1 · Terraform on Ubuntu Linux
 
-Built and deployed in May 2026, region us-east-1, on Ubuntu Linux using Terraform.
-
-> This started as a manual AWS CLI project. Rebuilding it in Terraform was the next logical step — same security principles, better engineering practice.
+> The question I asked before every design decision: what would an attacker do, and what does this platform do about it? Every service here is the answer to that question.
