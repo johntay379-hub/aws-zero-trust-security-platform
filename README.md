@@ -48,6 +48,85 @@ Refresh the page multiple times. You will hit different EC2 instances — that i
 
 ---
 
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+    Internet(["🌐 Internet"]) -->|port 80/443| ALB
+    ALB["⚖️ Application Load Balancer
+Health checks every 30s
+Removes unhealthy instances
+Distributes traffic evenly"] --> EC2A & EC2B
+
+    subgraph VPC["🏗️ VPC — 10.0.0.0/16"]
+        subgraph PUB1["📡 Public Subnet AZ-A — 10.0.1.0/24"]
+            EC2A["🖥️ EC2 Instance A
+Apache · IMDSv2 Enforced"]
+        end
+        subgraph PUB2["📡 Public Subnet AZ-B — 10.0.2.0/24"]
+            EC2B["🖥️ EC2 Instance B
+Apache · IMDSv2 Enforced"]
+        end
+        subgraph PRI1["🔒 Private Subnet AZ-A — 10.0.3.0/24"]
+            DB1["🗄️ Future DB Layer"]
+        end
+        subgraph PRI2["🔒 Private Subnet AZ-B — 10.0.4.0/24"]
+            DB2["🗄️ Future DB Layer"]
+        end
+    end
+
+    ASG["📈 Auto Scaling Group
+Min 1 · Max 4
+Scale up at 70% CPU
+Scale down at 30% CPU"] -.->|manages| EC2A & EC2B
+    IAM["🔐 IAM
+Least Privilege
+Instance Profile
+Password Policy"] -.->|role assigned| EC2A & EC2B
+    EC2A & EC2B -->|API events| CT
+    CT["🔍 CloudTrail
+Multi-Region · Tamper-Proof
+Log File Validation"] -->|log delivery| S3
+    S3["🪣 S3 Audit Vault
+AES-256 · Versioned
+Policy: CloudTrail + Config only"]
+    EC2A & EC2B -->|metrics| CW
+    CW["📊 CloudWatch
+CPU High → scale up
+CPU Low → scale down
+ALB 5XX → alert"] -->|triggers| SNS & ASG
+    SNS["📧 SNS
+Real-Time Email Alerts"]
+    CFG["🛡️ AWS Config
+4 Compliance Rules
+Continuous Evaluation"] --> S3
+    TF["⚙️ Terraform
+1 command · 43 resources"] -.->|provisions| VPC & IAM & S3 & CT & CW & CFG
+
+    style Internet fill:#0d1a30,stroke:#4a9eff,color:#93c5fd
+    style ALB fill:#0a1a20,stroke:#06b6d4,color:#67e8f9
+    style VPC fill:#0e1520,stroke:#1e3a5f,color:#7a9bbf
+    style PUB1 fill:#0a2020,stroke:#00d4aa,color:#5eead4
+    style PUB2 fill:#0a2020,stroke:#00d4aa,color:#5eead4
+    style PRI1 fill:#110d1f,stroke:#7c3aed,color:#a78bfa
+    style PRI2 fill:#110d1f,stroke:#7c3aed,color:#a78bfa
+    style EC2A fill:#0a1f0f,stroke:#00e676,color:#86efac
+    style EC2B fill:#0a1f0f,stroke:#00e676,color:#86efac
+    style DB1 fill:#0d1520,stroke:#374151,color:#4b5563
+    style DB2 fill:#0d1520,stroke:#374151,color:#4b5563
+    style ASG fill:#0a1f0f,stroke:#22c55e,color:#86efac
+    style IAM fill:#0d1a30,stroke:#3b82f6,color:#93c5fd
+    style CT fill:#1a1200,stroke:#f59e0b,color:#fcd34d
+    style S3 fill:#1a1200,stroke:#f59e0b,color:#fcd34d
+    style CW fill:#1a0e08,stroke:#ef4444,color:#fca5a5
+    style SNS fill:#1a0810,stroke:#ec4899,color:#f9a8d4
+    style CFG fill:#0d1030,stroke:#6366f1,color:#a5b4fc
+    style TF fill:#1a0a2e,stroke:#7B42BC,color:#c4b5fd
+```
+
+---
+
 ## 🚀 Deployment — Phase by Phase
 
 ### Phase 1 — IAM
