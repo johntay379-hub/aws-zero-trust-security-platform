@@ -1,273 +1,313 @@
-# 🔐 Secure CI/CD Pipeline
-> Terraform · GitHub Actions · tfsec · Remote State · AWS
+# 🔒 Terraform AWS Security Framework
 
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?style=for-the-badge&logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-Cloud-orange?style=for-the-badge&logo=amazon-aws)
+![Ubuntu](https://img.shields.io/badge/OS-Ubuntu%20Linux-E95420?style=for-the-badge&logo=ubuntu)
+![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge)
+![Region](https://img.shields.io/badge/Region-us--east--1-yellow?style=for-the-badge&logo=amazon-aws)
 
 ---
 
 ## What is this?
 
-A fully automated, secure infrastructure deployment pipeline built with Terraform and GitHub Actions. Every code push triggers an automated pipeline that checks formatting, validates syntax, scans for security issues with tfsec, and deploys to AWS — all without a single manual step.
+This project provisions a complete, security-hardened AWS environment using Terraform. Every resource — from IAM roles to CloudWatch alarms — is defined as code, versioned, and deployable with a single command.
 
-Push code. The pipeline does the rest.
+It covers six layers of cloud security: identity, storage, logging, networking, compute, and monitoring. No clicking around the console. No forgetting a step. Just `terraform apply` and everything is built exactly the same way, every time.
+
+---
+
+## 🌐 Live Demo
+
+**👉 http://52.72.133.29**
+
+---
+
+## 📌 What was built
+
+| Layer | Service | What it does |
+|---|---|---|
+| 🔐 Identity | IAM | Locks down who can do what — least privilege everywhere |
+| 🪣 Storage | S3 | Private, encrypted vault that stores every audit log |
+| 🔍 Logging | CloudTrail | Records every single API call made in the account |
+| 🌐 Networking | VPC | Custom isolated network — nothing gets in without permission |
+| 🖥️ Compute | EC2 | Hardened web server running Apache with a static IP |
+| 📊 Monitoring | CloudWatch + SNS | Watches for threats and sends email alerts in real time |
 
 ---
 
 ## 🏗️ Architecture
 
 ```mermaid
-flowchart LR
-    DEV["👨‍💻 Developer
-git push"] --> GH["🐙 GitHub
-Code + Secrets"]
+flowchart TD
+    Internet(["🌐 Internet\nHTTP · HTTPS"]) -->|port 80 / 443| IGW
 
-    GH --> JOB1
+    IGW["🚪 Internet Gateway\nVPC entry point"] --> RT
+    RT["📋 Route Table\n0.0.0.0/0 → IGW"] --> PUB
 
-    subgraph PIPELINE["GitHub Actions Pipeline"]
-        JOB1["Job 1 — Plan
-every push"] --> FMT["fmt"]
-        FMT --> VAL["validate"]
-        VAL --> PLAN["plan"]
-        PLAN --> TFSEC["🔍 tfsec
-security scan"]
-        TFSEC -->|main only| JOB2["Job 2 — Apply
-main branch only"]
+    subgraph VPC["🏗️ VPC — 10.0.0.0/16"]
+        subgraph PUB["📡 Public Subnet — 10.0.1.0/24"]
+            EC2["🖥️ EC2 Web Server\nt2.micro · Apache\nElastic IP · IMDSv2"]
+            SG["🛡️ Security Group\n80 · 443 · 22"]
+            EC2 --- SG
+        end
+        subgraph PRI["🔒 Private Subnet — 10.0.2.0/24"]
+            DB["🗄️ Future DB Layer\nNo public access"]
+        end
     end
 
-    subgraph STATE["Remote State"]
-        S3["🪣 S3
-state file"]
-        DDB["🔒 DynamoDB
-state lock"]
-    end
+    IAM["🔐 IAM\nLeast Privilege\nInstance Profile\nPassword Policy"] -.->|role assigned| EC2
 
-    JOB2 --> STATE
-    JOB2 --> AWS
+    EC2 -->|API events| CT
+    CT["🔍 CloudTrail\nMulti-Region\nLog Validation\nTamper-Proof"] -->|log delivery| S3
+    S3["🪣 S3 Audit Vault\nAES-256 Encrypted\nVersioned · Private"]
 
-    subgraph AWS["AWS — us-east-1"]
-        VPC["VPC"] --> SUBNET["Public Subnet"]
-        SUBNET --> SG["Security Group"]
-        SG --> EC2["🖥️ EC2
-Apache · IMDSv2"]
-    end
+    EC2 -->|metrics| CW
+    CW["📊 CloudWatch\nCPU · Status\nIAM Change Alarms"] -->|triggers| SNS
+    SNS["📧 SNS\nReal-Time\nEmail Alerts"]
 
-    SECRETS["🔑 GitHub Secrets
-AWS credentials"] -.->|injected| PIPELINE
+    TF["⚙️ Terraform\nInfrastructure as Code\nSingle Command Deploy"] -.->|provisions| VPC
+    TF -.->|provisions| IAM
+    TF -.->|provisions| S3
+    TF -.->|provisions| CT
+    TF -.->|provisions| CW
 
-    style DEV fill:#0d1a30,stroke:#4a9eff,color:#93c5fd
-    style GH fill:#0d1a30,stroke:#6366f1,color:#a5b4fc
-    style PIPELINE fill:#0e1520,stroke:#2088FF,color:#7a9bbf
-    style JOB1 fill:#0a1f0f,stroke:#22c55e,color:#86efac
-    style FMT fill:#0a1f0f,stroke:#22c55e,color:#86efac
-    style VAL fill:#0a1f0f,stroke:#22c55e,color:#86efac
-    style PLAN fill:#0a1f0f,stroke:#22c55e,color:#86efac
-    style TFSEC fill:#1a0810,stroke:#ef4444,color:#fca5a5
-    style JOB2 fill:#0a1f0f,stroke:#22c55e,color:#86efac
-    style STATE fill:#1a1200,stroke:#f59e0b,color:#fcd34d
-    style S3 fill:#1a1200,stroke:#f59e0b,color:#fcd34d
-    style DDB fill:#1a1200,stroke:#f59e0b,color:#fcd34d
-    style AWS fill:#0a2020,stroke:#00d4aa,color:#5eead4
-    style VPC fill:#0a2020,stroke:#00d4aa,color:#5eead4
-    style SUBNET fill:#0a2020,stroke:#00d4aa,color:#5eead4
-    style SG fill:#0d1520,stroke:#6b7280,color:#9ca3af
+    style Internet fill:#0d1a30,stroke:#4a9eff,color:#93c5fd
+    style IGW fill:#0a2020,stroke:#00d4aa,color:#5eead4
+    style RT fill:#0a2020,stroke:#00d4aa,color:#5eead4
+    style VPC fill:#0e1520,stroke:#1e3a5f,color:#7a9bbf
+    style PUB fill:#0a2020,stroke:#00d4aa,color:#5eead4
+    style PRI fill:#110d1f,stroke:#7c3aed,color:#a78bfa
     style EC2 fill:#0a1f0f,stroke:#00e676,color:#86efac
-    style SECRETS fill:#110d1f,stroke:#a855f7,color:#d8b4fe
+    style SG fill:#0d1520,stroke:#374151,color:#6b7280
+    style DB fill:#0d1520,stroke:#374151,color:#4b5563
+    style IAM fill:#0d1a30,stroke:#3b82f6,color:#93c5fd
+    style CT fill:#1a1200,stroke:#f59e0b,color:#fcd34d
+    style S3 fill:#1a1200,stroke:#f59e0b,color:#fcd34d
+    style CW fill:#1a0e08,stroke:#ef4444,color:#fca5a5
+    style SNS fill:#1a0810,stroke:#ec4899,color:#f9a8d4
+    style TF fill:#1a0a2e,stroke:#7B42BC,color:#c4b5fd
 ```
 
 ---
 
-## 📌 What was built
+## ⚙️ Why Terraform?
 
-| Component | Tool | Purpose |
-|---|---|---|
-| ⚙️ CI/CD Pipeline | GitHub Actions | Automates plan, validate, scan and deploy |
-| 🔍 Security Scanning | tfsec | Scans Terraform for misconfigurations before deploy |
-| 🗄️ Remote State | S3 + DynamoDB | Stores state safely, prevents concurrent runs |
-| 🔑 Secret Management | GitHub Secrets | AWS credentials never hardcoded |
-| 🌐 VPC | AWS | Isolated private network |
-| 📡 Public Subnet | AWS | Web tier — EC2 lives here |
-| 🚪 Internet Gateway | AWS | Controlled internet access |
-| 📋 Route Table | AWS | Directs traffic through IGW |
-| 🛡️ Security Group | AWS | Firewall — port 80 open, SSH restricted to my IP |
-| 🖥️ EC2 t2.micro | AWS | Apache web server with IMDSv2 enforced |
+I originally built this same framework manually using the AWS CLI. It worked, but it took hundreds of commands, was easy to get wrong, and hard to rebuild from scratch.
 
----
+Terraform solves all of that. You describe the infrastructure you want, and it figures out how to build it. If something goes wrong, you fix the code and reapply. When you're done, one command tears everything down cleanly.
 
-## ⚙️ How the pipeline works
-
-### Job 1 — Terraform Plan (every push)
-
-**terraform fmt** — enforces consistent code formatting. Messy code fails immediately.
-
-**terraform validate** — catches syntax errors before they reach AWS.
-
-**terraform plan** — shows exactly what will change. Nothing deployed yet — this is the review step.
-
-**tfsec** — scans every Terraform file for security misconfigurations. Found real issues in this project and they were fixed before deployment.
-
-### Job 2 — Terraform Apply (main branch only)
-
-Only runs when code merges to main. Feature branches trigger plan only — no deployment. This is the GitOps workflow used in professional engineering teams.
-
----
-
-## 🔍 tfsec Security Scan Results
-
-tfsec found 9 potential problems on the first scan. Here is what was found and fixed:
-
-| Severity | Finding | Action |
-|---|---|---|
-| 🔴 CRITICAL | SSH port 22 open to 0.0.0.0/0 | ✅ Fixed — restricted to my IP only |
-| 🔴 CRITICAL | HTTP port 80 open to 0.0.0.0/0 | ⚠️ Intentional — public web server |
-| 🔴 CRITICAL | Egress unrestricted | ⚠️ Acceptable for web server |
-| 🟠 HIGH | Subnet auto-assigns public IPs | ⚠️ Intentional — public web tier |
-| 🟡 MEDIUM | Missing security group descriptions | ✅ Fixed |
-| 🔵 LOW | Various minor findings | ⚠️ Documented |
-
-The SSH fix was the most important. Port 22 open to the entire internet is one of the most exploited AWS misconfigurations. tfsec caught it before deployment. That is exactly what security scanning in a pipeline is supposed to do.
-
----
-
-## 🗄️ Remote State
-
-By default Terraform stores state on your laptop — lost if your machine dies, corrupted if two runs happen at the same time.
-
-This project uses S3 for remote state storage and DynamoDB for state locking:
-
-```
-Pipeline starts → DynamoDB locks → terraform apply runs → DynamoDB unlocks → next run can start
-```
-
-One run at a time. No conflicts. No corruption. State never lost.
-
----
-
-## 🔑 Credentials — Never in code
-
-```yaml
-aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-```
-
-Stored as GitHub Secrets. Encrypted at rest. Never visible in logs or code. Injected at runtime only.
-
----
-
-## 🧱 Challenges We Solved
-
-| Challenge | Solution |
+| AWS CLI Version | Terraform Version |
 |---|---|
-| Terraform state lost on laptop | Moved to encrypted S3 remote backend |
-| Two pipeline runs corrupting state | DynamoDB state locking — one run at a time |
-| AWS credentials exposed in code | GitHub Secrets — injected at runtime only |
-| Security misconfigurations reaching AWS | tfsec scan in pipeline — blocks bad code |
-| Terraform provider too large for GitHub | Added .gitignore to exclude .terraform/ folder |
-| Pipeline failing on format errors | terraform fmt -check enforces consistent formatting |
-| SSH open to entire internet | tfsec caught it — restricted to trusted IP only |
+| 100+ manual commands | `terraform apply` |
+| Easy to make mistakes | Same result every time |
+| Hard to share or reproduce | Clone and deploy anywhere |
+| No record of what exists | State file tracks everything |
+| Manual teardown | `terraform destroy` |
 
 ---
 
-## 💡 Why this project matters
+## 🚀 How it was built — Phase by Phase
 
-| Skill demonstrated | How |
-|---|---|
-| Infrastructure as Code | Entire AWS stack in Terraform — nothing manual |
-| CI/CD automation | GitHub Actions deploys on every push to main |
-| Security mindset | tfsec scans every deployment — issues fixed before production |
-| Secret management | AWS credentials never in code |
-| Remote state | S3 + DynamoDB — production standard |
-| Git workflow | Feature branches for dev, main for production |
-| Cost awareness | ~$0.01/month total |
+### Phase 1 — IAM
+**Module:** `modules/iam/`
+
+The first thing I built was identity — before any server, any network, anything. This is intentional. In cloud environments, IAM is your first and most important line of defense.
+
+What was configured:
+- A strong account-wide password policy (14+ characters, symbols, expiry every 90 days)
+- An EC2 instance role with only the permissions it actually needs — CloudWatch and SSM
+- No admin users, no wildcard permissions, no shared credentials
+
+The reason IAM comes first is simple: if your identity layer is weak, nothing else you build matters.
 
 ---
 
-## 🚀 Pipeline run summary
+### Phase 2 — S3 Audit Vault
+**Module:** `modules/s3/`
 
-```
-git push to main
-      ↓
-Job 1: Terraform Plan ——— 21s
-  ✅ fmt · validate · plan · tfsec
-      ↓
-Job 2: Terraform Apply ——— 1m 22s
-  ✅ terraform apply -auto-approve
-      ↓
-Infrastructure live on AWS
-Total time: 1m 50s
-```
+Before any logging can happen, there needs to be a safe place to store the logs. I built a dedicated S3 bucket with three non-negotiables: encryption, versioning, and zero public access.
+
+What was configured:
+- AES-256 encryption at rest — logs cannot be read even if someone gets bucket access
+- Versioning enabled — even if someone deletes a log, the previous version is preserved
+- Public access fully blocked at bucket level
+- A resource-based policy that allows only the CloudTrail service to write — nothing else
+
+The goal was simple: make it physically difficult to tamper with audit evidence.
+
+---
+
+### Phase 3 — CloudTrail
+**Module:** `modules/cloudtrail/`
+
+With the vault ready, I turned on logging. CloudTrail captures every API call made in the AWS account — whether it comes from the console, the CLI, or an attacker.
+
+What was configured:
+- Multi-region trail — covers all AWS regions, not just the one being used
+- Global service events enabled — captures IAM and STS activity which are account-wide
+- Log file validation — every log file gets a hash that proves it hasn't been modified
+
+The multi-region part is often overlooked. Attackers know that most people only monitor their primary region. A multi-region trail removes that blind spot.
+
+---
+
+### Phase 4 — VPC
+**Module:** `modules/vpc/`
+
+I built the network from scratch — no default VPC, no pre-existing resources. Everything was intentional.
+
+What was configured:
+- A VPC with CIDR `10.0.0.0/16` — 65,536 private IP addresses
+- A public subnet for the web server — internet-facing, controlled by security groups
+- A private subnet reserved for a future database layer — completely isolated from the internet
+- An internet gateway and route table directing only necessary traffic
+- Two security groups — one for the web server (ports 80, 443, 22), one for a bastion host (port 22 only)
+
+The private subnet exists even though nothing lives there yet. This is intentional — building with future expansion in mind means you're not scrambling to restructure the network later.
+
+---
+
+### Phase 5 — EC2 Web Server
+**Module:** `modules/ec2/`
+
+The web server was the most hardening-intensive piece. A publicly accessible server is the highest-risk component in this architecture.
+
+What was configured:
+- Amazon Linux 2023 on a t2.micro (free tier eligible)
+- Apache installed automatically via a User Data script on first boot — no manual SSH required
+- An Elastic IP for a consistent public address that survives instance restarts
+- The IAM instance profile attached — the server can talk to CloudWatch and SSM without a single hardcoded credential
+- IMDSv2 enforced — this blocks a class of attacks called SSRF, where a compromised application tries to read AWS credentials from the metadata endpoint
+
+**Live:** http://52.72.133.29
+
+---
+
+### Phase 6 — CloudWatch + SNS
+**Module:** `modules/cloudwatch/`
+
+The final layer is visibility. It is not enough to build secure infrastructure — you need to know immediately when something goes wrong.
+
+What was configured:
+- A CPU alarm that fires if the instance stays above 80% for 10 minutes — this catches crypto miners and DDoS attacks
+- A status check alarm that fires if the instance fails its health check — catches hardware failures and crashes
+- An IAM policy change alarm that fires the moment any permission is modified — this is the most important one, because privilege escalation is how most attacks escalate
+- All alarms connected to an SNS topic that sends an email instantly
+
+---
+
+## 🛡️ Security Simulation
+
+After building, I tested. Three real-world attack scenarios were run against this deployment to verify that every control actually works:
+
+| Scenario | Result | Caught By |
+|---|---|---|
+| Unauthorized API Access | Blocked + Alerted | IAM · CloudTrail · CloudWatch · SNS |
+| SSH Brute Force | Blocked | Key Pair Auth · Security Group |
+| Log Tampering | Blocked + Preserved | S3 Policy · Versioning · CloudTrail |
+
+📄 [Read the full Security Simulation Report](SECURITY_SIMULATION.md)
+
+---
+
+## 🔐 Key Security Decisions
+
+These are the decisions that matter — and why they were made:
+
+**IAM before everything else** — Identity is the perimeter in cloud. If IAM is weak, a compromised account can undo every other control.
+
+**Multi-region CloudTrail** — Attackers commonly spin up resources in regions that aren't being monitored. A multi-region trail closes that gap.
+
+**Log file validation** — This creates a cryptographic hash for every log file. If a log is modified after delivery, the hash won't match and you'll know.
+
+**IMDSv2 enforcement** — The instance metadata service is a common target for SSRF attacks. IMDSv2 requires a session token, which blocks unauthenticated requests entirely.
+
+**S3 versioning** — Even with the strictest bucket policy, an attacker who somehow gets write access cannot permanently destroy logs. Versioning preserves every previous version.
+
+**Terraform modules** — Each service is its own module. This makes the code reusable, easier to audit, and easier to update without breaking everything else.
 
 ---
 
 ## 💰 Cost Breakdown
 
-| Resource | Monthly Cost |
+This entire deployment runs for almost nothing:
+
+| Service | Monthly Cost |
 |---|---|
 | EC2 t2.micro | $0.00 (free tier) |
-| S3 state bucket | ~$0.01 |
-| DynamoDB lock table | $0.00 (PAY_PER_REQUEST) |
-| VPC / Subnet / IGW | $0.00 (always free) |
-| GitHub Actions | $0.00 (2,000 free minutes/month) |
-| **Total** | **~$0.01/month** |
+| S3 Audit Vault | ~$0.02 |
+| CloudTrail | $0.00 (first trail is free) |
+| Elastic IP | $0.00 (attached to a running instance) |
+| CloudWatch | $0.00 (3 alarms, 10 are free) |
+| SNS | $0.00 (under 1,000 emails per month) |
+| VPC / IGW / Subnets | $0.00 (always free) |
+| **Total** | **~$0.02/month** |
 
 ---
 
 ## 🛠️ Deploy it yourself
 
 ```bash
-git clone https://github.com/johntay379-hub/secure-cicd-pipeline.git
-cd secure-cicd-pipeline
+# Clone the repository
+git clone https://github.com/johntay379-hub/terraform-aws-security-framework.git
+cd terraform-aws-security-framework
 
-# Create remote state backend
-aws s3api create-bucket --bucket your-state-bucket --region us-east-1
-aws s3api put-bucket-versioning --bucket your-state-bucket --versioning-configuration Status=Enabled
-aws dynamodb create-table --table-name your-lock-table   --attribute-definitions AttributeName=LockID,AttributeType=S   --key-schema AttributeName=LockID,KeyType=HASH   --billing-mode PAY_PER_REQUEST --region us-east-1
+# Generate an SSH key pair for EC2 access
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/john-security-key -N ""
 
-# Update providers.tf with your bucket name
-# Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to GitHub Secrets
-# Push to main — pipeline deploys everything automatically
-git push origin main
+# Set up your AWS credentials
+aws configure
+
+# Download the AWS provider plugin
+terraform init
+
+# See exactly what Terraform will create before touching anything
+terraform plan
+
+# Build everything
+terraform apply
+
+# When you are done, clean up with one command
+terraform destroy
 ```
+
+You will need Terraform 1.0 or higher, the AWS CLI configured, and an IAM user with sufficient permissions.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-secure-cicd-pipeline/
-├── .github/
-│   └── workflows/
-│       └── terraform.yml     # CI/CD pipeline definition
-├── main.tf                   # VPC · Subnet · IGW · Route Table · SG · EC2
-├── variables.tf              # Region · project name · CIDRs · instance type
-├── outputs.tf                # VPC ID · website URL
-├── providers.tf              # AWS provider + S3 remote backend
-├── .gitignore                # Excludes .terraform/ and state files
-├── index.html                # Web server homepage
-├── README.md                 # This file
-└── screenshots/              # Pipeline runs · tfsec results · AWS console
+terraform-aws-security-framework/
+├── main.tf                   # Connects all modules together
+├── variables.tf              # All configurable values in one place
+├── outputs.tf                # What gets printed after deployment
+├── providers.tf              # AWS provider and version config
+├── .gitignore                # Keeps secrets and large files out of git
+├── modules/
+│   ├── iam/                  # Phase 1 — Identity & access
+│   ├── s3/                   # Phase 2 — Audit log storage
+│   ├── cloudtrail/           # Phase 3 — API activity logging
+│   ├── vpc/                  # Phase 4 — Network isolation
+│   ├── ec2/                  # Phase 5 — Hardened web server
+│   └── cloudwatch/           # Phase 6 — Monitoring and alerting
+├── SECURITY_SIMULATION.md    # Attack scenarios and outcomes
+├── README.md                 # You are here
+└── screenshots/              # Console and CLI proof of deployment
 ```
-
----
-
-## 🔗 Related Projects
-
-| Project | What it covers |
-|---|---|
-| [AWS CLI Security Framework](https://github.com/johntay379-hub/aws-end-to-end-security-framework) | IAM · S3 · CloudTrail · VPC · EC2 · CloudWatch · SNS |
-| [Terraform Security Framework](https://github.com/johntay379-hub/terraform-aws-security-framework) | Same security model as Infrastructure as Code |
-| [Zero Trust Security Platform](https://github.com/johntay379-hub/aws-zero-trust-security-platform) | ALB · Auto Scaling · AWS Config |
-| **Secure CI/CD Pipeline** | **DevSecOps — automated pipeline with tfsec security scanning** |
 
 ---
 
 ## 📸 Screenshots
 
-All screenshots in /screenshots — GitHub Actions pipeline runs, tfsec scan output, AWS console views.
+All screenshots are in the `/screenshots` folder — AWS console views and Terraform terminal output showing every service deployed and verified.
 
 ---
 
 ## 👨‍💻 Author
 
-**John Kamau** — AWS Cloud Security Engineer
-Built June 2026 · Region: us-east-1 · Terraform + GitHub Actions on Ubuntu Linux
+**John** — AWS Cloud Security Engineer
 
-> Infrastructure should never be deployed by hand. Every change should be reviewed, scanned, planned, and applied automatically. This pipeline makes that the default — not the exception.
+Built and deployed in May 2026, region us-east-1, on Ubuntu Linux using Terraform.
+
+> This started as a manual AWS CLI project. Rebuilding it in Terraform was the next logical step — same security principles, better engineering practice.
