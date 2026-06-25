@@ -1,4 +1,4 @@
-# 🔒 AWS Zero Trust Security Platform
+# 🔒 Terraform AWS Security Framework
 
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?style=for-the-badge&logo=terraform)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange?style=for-the-badge&logo=amazon-aws)
